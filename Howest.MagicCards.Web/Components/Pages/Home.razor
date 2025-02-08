@@ -1,0 +1,27 @@
+﻿@page "/"
+@using System.Collections.Generic
+@using System.Linq
+@using Howest.MagicCards.Web.Components.DeckBuilderComponents
+@using Howest.MagicCards.Web.Components.SearchComponents
+
+@inject ICardRepository cardsRepository
+@inject IMapper mapper
+
+@rendermode InteractiveServer
+
+<PageTitle>@title</PageTitle>
+
+<div class="d-flex" style="width: 100%; margin: auto;">
+    <div class="flex-grow-1 p-3" style="width: 70%;">
+            <h3>@title</h3>
+        <CardSearcher />
+    </div>
+    <div class="p-3" style="width: 30%;">
+        <DeckBuilder />
+    </div>
+</div>
+
+
+@code {
+    private string title = "Deck Builder";
+}

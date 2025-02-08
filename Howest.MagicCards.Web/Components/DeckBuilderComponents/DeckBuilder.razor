@@ -1,0 +1,99 @@
+﻿@using System.Text.Json
+@using Howest.MagicCards.DAL.MongoModels
+@using Howest.MagicCards.Web.Errors
+
+@inject IHttpClientFactory httpClientFactory
+@inject ProtectedLocalStorage storage
+
+<h3>My Deck</h3>
+@if (deck == null)
+{
+	<p>¯\_(ツ)_/¯ nothing here yet, start adding cards</p>
+}
+else
+{	
+	<h4>@message</h4>
+	<DeckList deck="deck" />
+}
+
+@code {
+	private Deck deck;
+	private string message;
+	private JsonSerializerOptions jsonOptions;
+
+	public DeckBuilder()
+	{
+		jsonOptions = new JsonSerializerOptions
+		{
+			PropertyNameCaseInsensitive = true	
+		};
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await InitDeck();
+		}
+	}
+
+	private async Task InitDeck()
+	{
+		ProtectedBrowserStorageResult<string> storageResult = await storage.GetAsync<string>("deckId");
+		if (storageResult.Success && !string.IsNullOrEmpty(storageResult.Value))
+		{
+			try
+			{
+				deck = await GetDeck(storageResult.Value);
+			}
+			catch (DeckNotFoundException ex)
+			{
+				deck = null;
+				await CreateNewDeck();
+			}
+		}
+		else
+		{
+			deck = await CreateNewDeck();
+			await storage.SetAsync("deckId", deck.Id);
+		}
+	}
+
+	private async Task<Deck> CreateNewDeck()
+	{
+		HttpClient httpClient = httpClientFactory.CreateClient("DeckApi");
+		HttpResponseMessage response = await httpClient.PostAsync("/create", null);
+
+		if (response.IsSuccessStatusCode)
+		{
+			string responseBody = await response.Content.ReadAsStringAsync();
+			deck = JsonSerializer.Deserialize<Deck>(responseBody, jsonOptions);
+		}
+		else
+		{
+			deck = new();
+			message = $"Error: {response.StatusCode}, {response.Content}";
+		}
+		return deck;
+	}
+
+	private async Task<Deck> GetDeck(string id)
+	{
+		HttpClient httpClient = httpClientFactory.CreateClient("DeckApi");
+		HttpResponseMessage response = await httpClient.GetAsync($"/{id}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			string responseBody = await response.Content.ReadAsStringAsync();
+			deck = JsonSerializer.Deserialize<Deck>(responseBody, jsonOptions);
+		}
+		else
+		{
+			deck = new(); 
+			message = $"Error: {response.StatusCode}, {response.Content}"; 
+			throw new DeckNotFoundException("Your deck is no longer available"); 
+			// likely only caused by a stored id not matching an existing deck
+		}//out values don't work in async methods and a better structured app would have robust error handling
+		return deck;
+	}
+}

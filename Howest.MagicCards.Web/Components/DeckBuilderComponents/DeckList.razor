@@ -1,0 +1,61 @@
+﻿@using Howest.MagicCards.DAL.MongoModels
+
+<div class="p-12">
+    @if (deck != null && deck.Cards != null)
+    {
+        foreach (KeyValuePair<string, int> card in deck.Cards)
+        {
+            <div>
+                <button @onclick="() => RemoveCard(card.Key)" @onclick:preventDefault=true>-</button>
+                <span>@card.Value</span>
+                <button @onclick="() => AddCard(card.Key)" @onclick:preventDefault=true>+</button>
+                <span>@card.Key</span>
+            </div>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <p>@message</p>
+    }
+</div>
+
+@code {
+    [Parameter] public Deck deck { get; set; }
+    [Inject] public HttpClient HttpClient { get; set; }
+    private string message;
+
+    private async Task AddCard(string cardName)
+    {
+        if (deck != null)
+        {
+            HttpResponseMessage response = await HttpClient.PostAsync($"/{deck.Id}/{cardName}", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+
+            }
+            else
+            {
+                message = $"Error: {response.StatusCode}, {response.Content}";
+            }
+        }
+    }
+
+    private async Task RemoveCard(string cardName)
+    {
+        if (deck != null)
+        {
+            HttpResponseMessage response = await HttpClient.DeleteAsync($"/{deck.Id}/{cardName}");
+            if (response.IsSuccessStatusCode)
+            {
+                deck.Cards.Remove(cardName);
+            }
+            else
+            {
+                message = $"Error: {response.StatusCode}, {response.Content}";
+            }
+        }
+    }
+}
+

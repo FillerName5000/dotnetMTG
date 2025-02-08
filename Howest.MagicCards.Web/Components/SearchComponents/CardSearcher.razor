@@ -1,0 +1,92 @@
+﻿@using System.Collections.Generic
+@using System.Linq
+
+@inject ICardRepository cardsRepository
+@inject IMapper mapper
+@inject IHttpClientFactory httpClientFactory
+@inject ProtectedLocalStorage storage
+
+
+	<EditForm Model="@searchCriteria" OnValidSubmit="@SearchCards">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+	<SearchFilters SearchCriteria="@searchCriteria" IsAscending="@isAscending" />
+	<button type="submit">Search</button>
+	</EditForm>
+
+	@if (cards != null && cards.Any())
+	{
+		<h4>@message</h4>
+		<div class="d-flex flex-wrap">
+			@foreach (var card in cards)
+			{
+			<div class="card" style="@GetCardStyle(card)" @onclick="() => AddToDeck(card.Name)">
+					@if (string.IsNullOrEmpty(card.OriginalImageUrl))
+					{
+						<div>@card.Name</div>
+					}
+					else
+					{
+						<img src="@card.OriginalImageUrl" alt="@card.Name" style="max-width:100%; display: block; margin: auto;" />
+					}
+				</div>
+			}
+		</div>
+	}
+	else
+	{
+		<p>No cards found</p>
+	}
+
+@code {
+	[Parameter] public string ContainerStyle { get; set; }
+
+	private CardFilter searchCriteria = new CardFilter();
+	private bool isAscending;
+	private string message;
+	private string id;
+
+	private IEnumerable<CardReadBasicDTO> cards;
+
+	private void SearchCards()
+	{
+		cards = cardsRepository.GetAllCards()
+								.ToFilteredList(searchCriteria.SetCode, searchCriteria.ArtistName, searchCriteria.Rarity, searchCriteria.Name, searchCriteria.Type, searchCriteria.Text)
+								.SortByNameAscDesc(isAscending)
+								.ToPagedList(searchCriteria.PageNumber, searchCriteria.PageSize)
+								.ProjectTo<CardReadBasicDTO>(mapper.ConfigurationProvider)
+								.ToList();
+	}
+
+	protected override void OnInitialized()
+	{
+		SearchCards();
+	}
+
+	private async Task AddToDeck(string cardName)
+	{
+		HttpClient httpClient = httpClientFactory.CreateClient("DeckApi");
+		ProtectedBrowserStorageResult<string> storageResult = await storage.GetAsync<string>("deckId");
+		if (storageResult.Success && !string.IsNullOrEmpty(storageResult.Value))
+		{
+			id = storageResult.Value;
+			HttpResponseMessage response = await httpClient.PostAsync($"/{id}/{cardName}", null);
+			if (response.IsSuccessStatusCode)
+			{
+				// it worked (success animation out of scope)
+			}
+			else
+			{
+				message = $"id: {id} ;Error: {response.StatusCode}, {response.Content}";
+			}
+		}
+	}
+
+	private string GetCardStyle(CardReadBasicDTO card)
+	{
+		string backgroundColor = string.IsNullOrEmpty(card.OriginalImageUrl) ? "hotpink" : "white";
+		return $"flex: 1 0 19%; margin: .1rem; background-color: {backgroundColor}; padding: .2rem;";
+		//visual studio hated inlining this
+	}
+}
+

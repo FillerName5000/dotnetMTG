@@ -1,0 +1,42 @@
+﻿@using System.Collections.Generic
+@using System.Linq
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.SetCode" placeholder="Set Code" />
+    </div>
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.ArtistName" placeholder="Artist Name" />
+    </div>
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.Rarity" placeholder="Rarity" />
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.Type" placeholder="Type" />
+    </div>
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.Name" placeholder="Card Name" />
+    </div>
+    <div class="col-md-4">
+        <InputText class="form-control" @bind-Value="SearchCriteria.Text" placeholder="Text" />
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-md-4">
+        <InputRadioGroup @bind-Value="IsAscending">
+            <InputRadio TValue="bool" Value="true" id="ascending" />
+                <label for="ascending">Ascending</label>
+            <InputRadio TValue="bool" Value="false" id="descending" />
+            <label for="descending">Descending</label>
+        </InputRadioGroup>
+        <label class="form-check-label" for="sortOption">Sort Order</label>
+    </div>
+</div>
+
+@code {
+    [Parameter] public CardFilter SearchCriteria { get; set; }
+    [Parameter] public bool IsAscending { get; set; } // nullability to allow no sorting out of scope
+    // blazor does not like nullables
+}
